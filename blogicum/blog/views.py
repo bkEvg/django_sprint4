@@ -4,7 +4,7 @@ from django.db.models.query import QuerySet
 from django.http import HttpRequest
 from django.http.response import HttpResponse as HttpResponse
 from django.shortcuts import get_object_or_404, render
-from django.views.generic import ListView, DetailView, CreateView, TemplateView
+from django.views.generic import ListView, DetailView, CreateView, TemplateView, UpdateView
 from django.urls import reverse
 from typing import Any
 
@@ -54,6 +54,7 @@ class PostDetailView(DetailView):
     def get_context_data(self, **kwargs) -> dict[str, Any]:
         """Add extra data to context"""
         context = super().get_context_data(**kwargs)
+        context['form'] = CommentsForm(self.request.POST or None)
         context["post"] = get_object_or_404(filter_queryset(
             Post.objects, user_id=self.request.user.id, pk=self.kwargs['pk']
         ))
@@ -101,6 +102,11 @@ class ProfileView(ListView):
         return context
 
 
+class ProfileUpdateView(UpdateView):
+    model = User
+    fields = ('username', 'email', 'first_name', 'last_name')
+    
+
 class CommentCreateView(CreateView):
     model = Comment
     form_class = CommentsForm
@@ -111,6 +117,7 @@ class CommentCreateView(CreateView):
         self.object.author = get_object_or_404(
             User, username=self.request.user.username
         )
+        self.object.post = get_object_or_404(Post, pk=self.kwargs['pk'])
         self.object.save()
         return super().form_valid(form)
 

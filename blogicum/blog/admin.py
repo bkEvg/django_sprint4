@@ -27,3 +27,8 @@ class LocationAdmin(admin.ModelAdmin):
     """Location admin configs"""
 
     empty_value_display = '-пусто-'
+
+
+@admin.register(models.Comment)
+class CommentAdmin(admin.ModelAdmin):
+    """Comment admin config"""

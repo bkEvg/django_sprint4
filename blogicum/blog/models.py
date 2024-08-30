@@ -110,5 +110,14 @@ class Comment(models.Model):
     post = models.ForeignKey(Post, related_name='comments',
                              on_delete=models.CASCADE)
     author = models.ForeignKey(User, on_delete=models.CASCADE)
-    text = models.TextField()
+    text = models.TextField(verbose_name='Комментарий')
     created_at = models.DateTimeField(auto_now_add=True, null=True)
+
+    class Meta:
+        """Meta class"""
+
+        verbose_name = 'комментарий'
+        verbose_name_plural = 'Комментарии'
+
+    def __str__(self) -> str:
+        return f"комментарий от {self.author.username} на {self.post.title}"
