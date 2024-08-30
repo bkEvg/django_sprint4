@@ -25,6 +25,7 @@ urlpatterns = [
     # Blog zone
     path('', include('blog.urls')),
     path('pages/', include('pages.urls')),
+    path('auth/', include('users.urls')),
 ]
 
 if settings.DEBUG:

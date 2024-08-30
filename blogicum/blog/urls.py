@@ -1,12 +1,30 @@
-from django.urls import path
+from django.urls import path, include
+from django.conf.urls import handler403, handler404, handler500
 
 from . import views
 
 app_name = 'blog'
 
 urlpatterns = [
-    path('', views.index, name='index'),
-    path('posts/<int:post_id>/', views.post_detail, name='post_detail'),
-    path('category/<slug:category_slug>/', views.category_posts,
-         name='category_posts')
+    path('', views.PostListView.as_view(), name='index'),
+    path('auth/', include('users.urls')),
+    path('posts/<int:pk>/', views.PostDetailView.as_view(),
+         name='post_detail'),
+    path('posts/<int:pk>/edit/', views.PostCreateView.as_view(),
+         name='edit_post'),
+    path('posts/<int:pk>/delete/', views.PostCreateView.as_view(),
+         name='delete_post'),
+    path('posts/create/', views.PostCreateView.as_view(), name='create_post'),
+    path('posts/<int:pk>/comment/', views.CommentCreateView.as_view(),
+         name='add_comment'),
+    path('category/<slug:category_slug>/', views.CategoryPostsView.as_view(),
+         name='category_posts'),
+    path('profile/<str:username>/', views.ProfileView.as_view(),
+         name='profile'),
+    path('profile/edit', views.ProfileView.as_view(),
+         name='edit_profile'),
 ]
+
+handler403 = views.CustomErrorView.as_view(error_code=403)
+handler404 = views.CustomErrorView.as_view(error_code=404)
+handler500 = views.CustomErrorView.as_view(error_code=500)

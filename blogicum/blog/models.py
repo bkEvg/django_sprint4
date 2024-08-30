@@ -36,7 +36,7 @@ class Post(BaseModel):
     pub_date = models.DateTimeField(verbose_name='Дата и время публикации',
                                     help_text='Если установить дату и время '
                                               'в будущем — можно делать '
-                                              'отложенные публикации.')
+                                              'отложенные публикации.',)
     author = models.ForeignKey(User, on_delete=models.CASCADE,
                                verbose_name='Автор публикации')
     location = models.ForeignKey('Location', on_delete=models.SET_NULL,
@@ -61,6 +61,10 @@ class Post(BaseModel):
     def get_absolute_url(self):
         """Get absolute path to the element"""
         return reverse('blog:post_detail', kwargs={'post_id': self.pk})
+
+    @staticmethod
+    def comment_count(self):
+        return self.comments.count()
 
 
 class Category(BaseModel):
@@ -100,3 +104,11 @@ class Location(BaseModel):
     def __str__(self) -> str:
         """String representation"""
         return self.name
+
+
+class Comment(models.Model):
+    post = models.ForeignKey(Post, related_name='comments',
+                             on_delete=models.CASCADE)
+    author = models.ForeignKey(User, on_delete=models.CASCADE)
+    text = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True, null=True)
