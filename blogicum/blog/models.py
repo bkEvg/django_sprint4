@@ -60,7 +60,7 @@ class Post(BaseModel):
 
     def get_absolute_url(self):
         """Get absolute path to the element"""
-        return reverse('blog:post_detail', kwargs={'post_id': self.pk})
+        return reverse('blog:post_detail', kwargs={'pk': self.pk})
 
     @staticmethod
     def comment_count(self):

@@ -1,9 +1,10 @@
 from django.contrib.auth import get_user_model
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.db.models.base import Model as Model
 from django.db.models.query import QuerySet
 from django.http import HttpRequest
 from django.http.response import HttpResponse as HttpResponse
-from django.shortcuts import get_object_or_404, render
+from django.shortcuts import get_object_or_404, redirect
 from django.views.generic import ListView, DetailView, CreateView, TemplateView, UpdateView
 from django.urls import reverse
 from typing import Any
@@ -25,7 +26,7 @@ class PostListView(ListView):
     paginate_by = 10
 
 
-class PostCreateView(CreateView):
+class PostCreateView(LoginRequiredMixin, CreateView):
     """Post create view"""
 
     model = Post
@@ -43,6 +44,17 @@ class PostCreateView(CreateView):
     def get_success_url(self) -> str:
         """Get url of created post and open page with it"""
         return reverse('blog:post_detail', args=[self.object.id])
+
+
+class PostUpdateView(PostCreateView, UpdateView):
+    """Update post view"""
+
+    def get(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        if self.object.author.username == self.request.user.username:
+            return super().get(request, *args, **kwargs)
+        else:
+            return redirect('blog:post_detail', pk=self.object.pk)
 
 
 class PostDetailView(DetailView):
@@ -102,12 +114,25 @@ class ProfileView(ListView):
         return context
 
 
-class ProfileUpdateView(UpdateView):
+class ProfileUpdateView(LoginRequiredMixin, UpdateView):
+    """Update profile view"""
+
     model = User
+    template_name = 'registration/registration_form.html'
     fields = ('username', 'email', 'first_name', 'last_name')
-    
+
+    def get_object(self):
+        """Edit current user"""
+        object = get_object_or_404(User, username=self.request.user.username)
+        return object
+
+    def get_success_url(self) -> str:
+        return reverse('blog:profile', args=[self.request.user.username])
+
 
 class CommentCreateView(CreateView):
+    """Crete comment view"""
+
     model = Comment
     form_class = CommentsForm
     template_name = 'blog/detail.html'
