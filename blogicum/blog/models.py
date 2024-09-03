@@ -62,7 +62,6 @@ class Post(BaseModel):
         """Get absolute path to the element"""
         return reverse('blog:post_detail', kwargs={'pk': self.pk})
 
-    @staticmethod
     def comment_count(self):
         return self.comments.count()
 
@@ -118,6 +117,7 @@ class Comment(models.Model):
 
         verbose_name = 'комментарий'
         verbose_name_plural = 'Комментарии'
+        ordering = ('-created_at',)
 
     def __str__(self) -> str:
         return f"комментарий от {self.author.username} на {self.post.title}"

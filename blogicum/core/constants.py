@@ -4,4 +4,4 @@
 #     python manage.py makemigrations && python manage.py migrate
 MAX_LENGTH_CHAR_FIELD = 256
 
-MAX_POSTS_COUNT = 5
+MAX_POSTS_COUNT = 10
