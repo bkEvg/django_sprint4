@@ -30,6 +30,9 @@ class BaseModel(models.Model):
 class Post(BaseModel):
     """class representing 'Post' fields in database"""
 
+    image = models.ImageField(verbose_name='Изображение к публикации',
+                              upload_to='uploads/post_covers', blank=True,
+                              null=True)
     title = models.CharField(max_length=MAX_LENGTH_CHAR_FIELD,
                              verbose_name='Заголовок')
     text = models.TextField(verbose_name='Текст')

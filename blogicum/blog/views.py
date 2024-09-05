@@ -3,12 +3,12 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models.base import Model as Model
 from django.db.models.query import QuerySet
 from django.db.models.functions import Now
-from django.http import HttpRequest
+from django.http import HttpRequest, Http404
 from django.http.response import HttpResponse as HttpResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.views.generic import (ListView, DetailView, CreateView,
                                   TemplateView, UpdateView, DeleteView)
-from django.urls import reverse
+from django.urls import reverse, reverse_lazy
 from typing import Any
 
 from .mixins import SuccessURLMixin
@@ -66,25 +66,26 @@ class PostDetailView(DetailView):
     model = Post
     template_name = "blog/detail.html"
 
+    def is_author(self) -> bool:
+        """Return 'True' if current user is author of the post, 'False'
+        otherwise
+        """
+        return self.request.user == self.get_object().author
+
+    def get_own_post(self):
+        """Retrieve the post considering the current user"""
+        post = self.get_object()
+        if not self.is_author() or (
+                not post.is_published or post.pub_date > Now()):
+            raise Http404("Пост не найден, или недоступен")
+        return post
+
     def get_context_data(self, **kwargs) -> dict[str, Any]:
         """Add extra data to context"""
         context = super().get_context_data(**kwargs)
-        self.user = get_object_or_404(
-            User, username=self.request.user.username)
         context["form"] = CommentsForm(self.request.POST or None)
         context["comments"] = self.get_object().comments.all()
-        
-        if self.user.username != self.get_object().author.username:
-            post = get_object_or_404(
-                Post,
-                pk=self.kwargs["pk"],
-                is_published=True,
-                pub_date__lte=Now()
-            )
-            context["post"] = post
-        else:
-            # Если это автор поста, показываем его даже если он отложен
-            context["post"] = self.get_object()
+        context["post"] = self.get_post()
         return context
 
 
@@ -92,7 +93,14 @@ class PostDeleteView(LoginRequiredMixin, DeleteView):
     """Delete post view"""
 
     model = Post
-    template_name = "blog/detail.html"
+    template_name = "blog/create.html"
+    success_url = reverse_lazy("blog:profile")
+
+    def get_context_data(self, **kwargs) -> dict[str, Any]:
+        """Add form with instance to the response"""
+        context = super().get_context_data(**kwargs)
+        context["form"] = PostForm(instance=self.get_object())
+        return context
 
     def get_object(self) -> Model:
         """Delete post only if current user is author and post exists"""
@@ -139,9 +147,11 @@ class ProfileView(ListView):
 
     def get_queryset(self):
         """Get post by username kwarg"""
-        self.user = get_object_or_404(
-            User, username=self.kwargs["username"]
-        )
+        if "username" in self.kwargs:
+            username = self.kwargs["username"]
+        else:
+            username = self.request.user.username
+        self.user = get_object_or_404(User, username=username)
         valid_objects = self.request.user.username != self.user.username
         posts = filter_queryset(
             self.model.objects,
@@ -201,9 +211,10 @@ class CommentCreateView(LoginRequiredMixin, SuccessURLMixin, CreateView):
 
     def form_valid(self, form):
         """When comment form has perform post request
-        we add extra data to it as: 
+        we add extra data to it as:
             author - current user
-            post - current post"""
+            post - current post
+        """
         self.object = form.save(commit=False)
         self.object.author = get_object_or_404(
             User, username=self.request.user.username

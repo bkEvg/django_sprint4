@@ -152,3 +152,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 LOGIN_URL = '/auth/login'
 LOGIN_REDIRECT_URL = 'blog:index'
 LOGOUT_REDIRECT_URL = 'blog:index'
+
+# E-mail specs
+EMAIL_BACKEND = "django.core.mail.backends.filebased.EmailBackend"
+EMAIL_FILE_PATH = BASE_DIR / 'sent_emails'
