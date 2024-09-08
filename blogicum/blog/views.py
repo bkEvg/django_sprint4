@@ -2,13 +2,13 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models.base import Model as Model
 from django.db.models.query import QuerySet
-from django.db.models.functions import Now
 from django.http import HttpRequest, Http404
 from django.http.response import HttpResponse as HttpResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.views.generic import (ListView, DetailView, CreateView,
                                   TemplateView, UpdateView, DeleteView)
 from django.urls import reverse, reverse_lazy
+from django.utils import timezone
 from typing import Any
 
 from .mixins import SuccessURLMixin
@@ -72,11 +72,11 @@ class PostDetailView(DetailView):
         """
         return self.request.user == self.get_object().author
 
-    def get_own_post(self):
+    def get_post(self):
         """Retrieve the post considering the current user"""
         post = self.get_object()
-        if not self.is_author() or (
-                not post.is_published or post.pub_date > Now()):
+        now = timezone.now()
+        if not self.is_author() and (not post.is_published or post.pub_date > now):
             raise Http404("Пост не найден, или недоступен")
         return post
 

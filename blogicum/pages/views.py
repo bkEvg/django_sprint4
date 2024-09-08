@@ -1,13 +1,13 @@
-from django.shortcuts import render
+from django.views.generic import TemplateView
 
 
-def rules(request):
-    """Rules page view"""
+class RulesView(TemplateView):
+    """Generate page with project rules"""
+
     template_name = 'pages/rules.html'
-    return render(request, template_name)
 
 
-def about(request):
-    """About page view"""
+class AboutView(TemplateView):
+    """Generate page with info about us"""
+
     template_name = 'pages/about.html'
-    return render(request, template_name)

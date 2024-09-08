@@ -20,7 +20,7 @@ urlpatterns = [
          name='create_post'),
 
     # Comments url part
-    path('posts/<int:pk>/create_comment/',
+    path('posts/<int:pk>/comment/',
          views.CommentCreateView.as_view(), name='add_comment'),
     path('posts/<int:pk>/edit_comment/<int:comment_id>/',
          views.CommentUpdateView.as_view(), name='edit_comment'),

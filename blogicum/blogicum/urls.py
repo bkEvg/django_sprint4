@@ -14,6 +14,7 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
+from django.conf.urls.static import static
 from django.urls import path, include
 
 from . import settings
@@ -26,7 +27,8 @@ urlpatterns = [
     path('', include('blog.urls')),
     path('pages/', include('pages.urls')),
     path('auth/', include('users.urls')),
-]
+] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 if settings.DEBUG:
-    urlpatterns += (path("__debug__/", include("debug_toolbar.urls")),)
+    urlpatterns += (
+        path("__debug__/", include("debug_toolbar.urls")),)
