@@ -4,7 +4,7 @@ from django.db.models.base import Model as Model
 from django.db.models.query import QuerySet
 from django.http import HttpRequest, Http404
 from django.http.response import HttpResponse as HttpResponse
-from django.shortcuts import get_object_or_404, redirect
+from django.shortcuts import get_object_or_404, redirect, render
 from django.views.generic import (ListView, DetailView, CreateView,
                                   TemplateView, UpdateView, DeleteView)
 from django.urls import reverse, reverse_lazy
@@ -19,6 +19,16 @@ from core.constants import MAX_POSTS_COUNT
 
 
 User = get_user_model()
+
+
+class BasePost:
+    model = Post
+
+    def is_author(self) -> bool:
+        """Return 'True' if current user is author of the post, 'False'
+        otherwise
+        """
+        return self.request.user == self.get_object().author
 
 
 class PostListView(ListView):
@@ -49,28 +59,34 @@ class PostCreateView(LoginRequiredMixin, CreateView):
         return reverse("blog:profile", args=[self.request.user.username])
 
 
-class PostUpdateView(PostCreateView, UpdateView):
+class PostUpdateView(BasePost, UpdateView):
     """Update post view"""
 
+    template_name = "blog/create.html"
+    form_class = PostForm
+
     def get(self, request, *args, **kwargs):
-        self.object = self.get_object()
-        if self.object.author.username == self.request.user.username:
+        object = self.get_object()
+        if self.is_author():
             return super().get(request, *args, **kwargs)
         else:
-            return redirect("blog:post_detail", pk=self.object.pk)
+            return redirect("blog:post_detail", pk=object.pk)
+
+    def post(self, request: HttpRequest, *args: str, **kwargs) -> HttpResponse:
+        object = self.get_object()
+        if self.is_author():
+            return super().post(request, *args, **kwargs)
+        return redirect("blog:post_detail", pk=object.pk)
+
+    def get_success_url(self) -> str:
+        """Generate URL dymanically based on post ID"""
+        return reverse("blog:post_detail", args=[self.kwargs['pk']])
 
 
-class PostDetailView(DetailView):
+class PostDetailView(BasePost, DetailView):
     """Detail View for post"""
 
-    model = Post
     template_name = "blog/detail.html"
-
-    def is_author(self) -> bool:
-        """Return 'True' if current user is author of the post, 'False'
-        otherwise
-        """
-        return self.request.user == self.get_object().author
 
     def get_post(self):
         """Retrieve the post considering the current user"""
@@ -270,3 +286,18 @@ class CustomErrorView(TemplateView):
         if self.error_code == 403:
             return [f"pages/{self.error_code}csrf.html"]
         return [f"pages/{self.error_code}.html"]
+
+
+def handle_404page(request):
+    template_name = "pages/404.html"
+    return render(request, template_name)
+
+
+def handle_403page(request):
+    template_name = "pages/403.html"
+    return render(request, template_name)
+
+
+def handle_500page(request):
+    template_name = "pages/500csrf.html"
+    return render(request, template_name)

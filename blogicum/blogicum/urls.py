@@ -18,6 +18,8 @@ from django.conf.urls.static import static
 from django.urls import path, include
 
 from . import settings
+from users.views import Registration
+
 
 urlpatterns = [
     # Administrative zone
@@ -26,9 +28,15 @@ urlpatterns = [
     # Blog zone
     path('', include('blog.urls')),
     path('pages/', include('pages.urls')),
-    path('auth/', include('users.urls')),
+    path('auth/', include('django.contrib.auth.urls')),
+    path('auth/registration/', Registration.as_view(), name='registration')
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 if settings.DEBUG:
     urlpatterns += (
         path("__debug__/", include("debug_toolbar.urls")),)
+
+
+handler403 = "blog.views.handle_403page"
+handler404 = "blog.views.handle_404page"
+handler500 = "blog.views.handle_500page"

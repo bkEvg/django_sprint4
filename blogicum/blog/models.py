@@ -120,7 +120,7 @@ class Comment(models.Model):
 
         verbose_name = 'комментарий'
         verbose_name_plural = 'Комментарии'
-        ordering = ('-created_at',)
+        ordering = ('created_at',)
 
     def __str__(self) -> str:
         return f"комментарий от {self.author.username} на {self.post.title}"
