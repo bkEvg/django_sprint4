@@ -6,7 +6,7 @@ from django.http import HttpRequest, Http404
 from django.http.response import HttpResponse as HttpResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.views.generic import (ListView, DetailView, CreateView,
-                                  TemplateView, UpdateView, DeleteView)
+                                  UpdateView, DeleteView)
 from django.urls import reverse
 from django.utils import timezone
 from typing import Any
