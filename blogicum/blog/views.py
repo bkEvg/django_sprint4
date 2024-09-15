@@ -4,10 +4,10 @@ from django.db.models.base import Model as Model
 from django.db.models.query import QuerySet
 from django.http import HttpRequest, Http404
 from django.http.response import HttpResponse as HttpResponse
-from django.shortcuts import get_object_or_404, redirect, render
+from django.shortcuts import get_object_or_404, redirect
 from django.views.generic import (ListView, DetailView, CreateView,
                                   TemplateView, UpdateView, DeleteView)
-from django.urls import reverse, reverse_lazy
+from django.urls import reverse
 from django.utils import timezone
 from typing import Any
 
@@ -66,11 +66,12 @@ class PostUpdateView(BasePost, UpdateView):
     form_class = PostForm
 
     def get(self, request, *args, **kwargs):
-        object = self.get_object()
+        # object = self.get_object()
         if self.is_author():
             return super().get(request, *args, **kwargs)
         else:
-            return redirect("blog:post_detail", pk=object.pk)
+            # return redirect("blog:post_detail", pk=object.pk)
+            raise Http404("Вам нельзя редактировать не свои публикации")
 
     def post(self, request: HttpRequest, *args: str, **kwargs) -> HttpResponse:
         object = self.get_object()
@@ -92,7 +93,8 @@ class PostDetailView(BasePost, DetailView):
         """Retrieve the post considering the current user"""
         post = self.get_object()
         now = timezone.now()
-        if not self.is_author() and (not post.is_published or post.pub_date > now):
+        if not self.is_author() and (
+                not post.is_published or post.pub_date > now):
             raise Http404("Пост не найден, или недоступен")
         return post
 
@@ -110,7 +112,6 @@ class PostDeleteView(LoginRequiredMixin, DeleteView):
 
     model = Post
     template_name = "blog/create.html"
-    success_url = reverse_lazy("blog:profile")
 
     def get_context_data(self, **kwargs) -> dict[str, Any]:
         """Add form with instance to the response"""
@@ -123,10 +124,15 @@ class PostDeleteView(LoginRequiredMixin, DeleteView):
         queryset = self.get_queryset()
 
         obj = get_object_or_404(queryset, pk=self.kwargs["pk"])
-        if self.request.user.username == obj.author.username:
+        if (self.request.user.username == obj.author.username) or (
+                self.request.user.is_staff):
             return obj
         else:
-            redirect("blog:post_detail", self.kwargs["pk"])
+            raise Http404("Вам нельзя удалять не свои публикации")
+
+    def get_success_url(self) -> str:
+        """Success url to the profile when profile updated"""
+        return reverse("blog:profile", args=[self.request.user.username])
 
 
 class CategoryPostsView(ListView):
@@ -139,8 +145,10 @@ class CategoryPostsView(ListView):
     def get_queryset(self) -> QuerySet[Any]:
         """Override get_queryset method to filter post by category"""
         self.category = get_object_or_404(
-            Category, slug=self.kwargs["category_slug"], is_published=True
+            Category, slug=self.kwargs["category_slug"]
         )
+        if not self.category.is_published:
+            raise Http404("Категория не опубликована")
         return filter_queryset(self.category.posts)
 
     def get_context_data(self, **kwargs) -> dict[str, Any]:
@@ -163,9 +171,8 @@ class ProfileView(ListView):
 
     def get_queryset(self):
         """Get post by username kwarg"""
-        if "username" in self.kwargs:
-            username = self.kwargs["username"]
-        else:
+        username = self.kwargs["username"]
+        if not username:
             username = self.request.user.username
         self.user = get_object_or_404(User, username=username)
         valid_objects = self.request.user.username != self.user.username
@@ -231,11 +238,12 @@ class CommentCreateView(LoginRequiredMixin, SuccessURLMixin, CreateView):
             author - current user
             post - current post
         """
+        post = get_object_or_404(Post, pk=self.kwargs["pk"])
         self.object = form.save(commit=False)
         self.object.author = get_object_or_404(
             User, username=self.request.user.username
         )
-        self.object.post = get_object_or_404(Post, pk=self.kwargs["pk"])
+        self.object.post = post
         self.object.save()
         return super().form_valid(form)
 
@@ -252,13 +260,15 @@ class CommentUpdateView(CommentBaseView, UpdateView):
         if self.get_object().author.username == self.request.user.username:
             return super().get(request, *args, **kwargs)
         else:
-            return redirect("blog:post_detail", self.kwargs["pk"])
+            # return redirect("blog:post_detail", self.kwargs["pk"])
+            raise Http404("Вам нельзя редактировать не свои комментарии")
 
 
-class CommentDeleteView(CommentBaseView, DeleteView):
+class CommentDeleteView(DeleteView):
     """Delete comment"""
 
     template_name = "blog/comment.html"
+    model = Comment
 
     def get_object(self) -> Model:
         """Method allow delete comment only if current user is the author"""
@@ -267,37 +277,4 @@ class CommentDeleteView(CommentBaseView, DeleteView):
         if obj.author.username == self.request.user.username:
             return obj
         else:
-            return redirect("blog:post_detail", self.kwargs["pk"])
-
-
-class CustomErrorView(TemplateView):
-    """Custom view for any page error"""
-
-    error_code = None
-
-    def dispatch(self, request: HttpRequest, *args: Any,
-                 **kwargs: Any) -> HttpResponse:
-        """Display page error in a correct way"""
-        self.error_code = kwargs.get("error_code")
-        return super().dispatch(request, *args, **kwargs)
-
-    def get_template_names(self) -> list[str]:
-        """Dinamic template name generation from error_code kwarg"""
-        if self.error_code == 403:
-            return [f"pages/{self.error_code}csrf.html"]
-        return [f"pages/{self.error_code}.html"]
-
-
-def handle_404page(request):
-    template_name = "pages/404.html"
-    return render(request, template_name)
-
-
-def handle_403page(request):
-    template_name = "pages/403.html"
-    return render(request, template_name)
-
-
-def handle_500page(request):
-    template_name = "pages/500csrf.html"
-    return render(request, template_name)
+            raise Http404("Вам нельзя удалять не свои комментарии")

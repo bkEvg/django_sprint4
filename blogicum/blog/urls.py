@@ -1,5 +1,4 @@
 from django.urls import path, include
-from django.conf.urls import handler403, handler404, handler500
 
 from . import views
 
@@ -36,7 +35,3 @@ urlpatterns = [
     path('profile/edit', views.ProfileUpdateView.as_view(),
          name='edit_profile')
 ]
-
-handler403 = views.CustomErrorView.as_view(error_code=403)
-handler404 = views.CustomErrorView.as_view(error_code=404)
-handler500 = views.CustomErrorView.as_view(error_code=500)

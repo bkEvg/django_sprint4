@@ -37,6 +37,6 @@ if settings.DEBUG:
         path("__debug__/", include("debug_toolbar.urls")),)
 
 
-handler403 = "blog.views.handle_403page"
-handler404 = "blog.views.handle_404page"
-handler500 = "blog.views.handle_500page"
+handler403 = "pages.views.handle_403page"
+handler404 = "pages.views.handle_404page"
+handler500 = "pages.views.handle_500page"
