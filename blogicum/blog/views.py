@@ -24,11 +24,11 @@ User = get_user_model()
 class BasePost:
     model = Post
 
-    def is_author(self) -> bool:
-        """Return 'True' if current user is author of the post, 'False'
+    def is_author(self, obj) -> bool:
+        """Return 'True' if current user is author of the obj, 'False'
         otherwise
         """
-        return self.request.user == self.get_object().author
+        return self.request.user == obj.author
 
 
 class PostListView(ListView):
@@ -66,8 +66,8 @@ class PostUpdateView(BasePost, UpdateView):
     form_class = PostForm
 
     def get(self, request, *args, **kwargs):
-        # object = self.get_object()
-        if self.is_author():
+        object = self.get_object()
+        if self.is_author(object):
             return super().get(request, *args, **kwargs)
         else:
             # return redirect("blog:post_detail", pk=object.pk)
@@ -75,7 +75,7 @@ class PostUpdateView(BasePost, UpdateView):
 
     def post(self, request: HttpRequest, *args: str, **kwargs) -> HttpResponse:
         object = self.get_object()
-        if self.is_author():
+        if self.is_author(object):
             return super().post(request, *args, **kwargs)
         return redirect("blog:post_detail", pk=object.pk)
 
@@ -93,7 +93,7 @@ class PostDetailView(BasePost, DetailView):
         """Retrieve the post considering the current user"""
         post = self.get_object()
         now = timezone.now()
-        if not self.is_author() and (
+        if not self.is_author(post) and (
                 not post.is_published or post.pub_date > now):
             raise Http404("Пост не найден, или недоступен")
         return post
@@ -107,25 +107,17 @@ class PostDetailView(BasePost, DetailView):
         return context
 
 
-class PostDeleteView(LoginRequiredMixin, DeleteView):
+class PostDeleteView(BasePost, LoginRequiredMixin, DeleteView):
     """Delete post view"""
 
-    model = Post
     template_name = "blog/create.html"
-
-    def get_context_data(self, **kwargs) -> dict[str, Any]:
-        """Add form with instance to the response"""
-        context = super().get_context_data(**kwargs)
-        context["form"] = PostForm(instance=self.get_object())
-        return context
 
     def get_object(self) -> Model:
         """Delete post only if current user is author and post exists"""
         queryset = self.get_queryset()
 
         obj = get_object_or_404(queryset, pk=self.kwargs["pk"])
-        if (self.request.user.username == obj.author.username) or (
-                self.request.user.is_staff):
+        if self.is_author(obj) or self.request.user.is_staff:
             return obj
         else:
             raise Http404("Вам нельзя удалять не свои публикации")
@@ -144,12 +136,13 @@ class CategoryPostsView(ListView):
 
     def get_queryset(self) -> QuerySet[Any]:
         """Override get_queryset method to filter post by category"""
+        # check publish availability
         self.category = get_object_or_404(
-            Category, slug=self.kwargs["category_slug"]
+            Category, slug=self.kwargs["category_slug"], is_published=True
         )
-        if not self.category.is_published:
-            raise Http404("Категория не опубликована")
-        return filter_queryset(self.category.posts)
+        # if category available return posts of its category
+        queryset = Post.objects.filter(category=self.category)
+        return queryset
 
     def get_context_data(self, **kwargs) -> dict[str, Any]:
         """Add custom filter to a paginator"""
@@ -172,8 +165,6 @@ class ProfileView(ListView):
     def get_queryset(self):
         """Get post by username kwarg"""
         username = self.kwargs["username"]
-        if not username:
-            username = self.request.user.username
         self.user = get_object_or_404(User, username=username)
         valid_objects = self.request.user.username != self.user.username
         posts = filter_queryset(
