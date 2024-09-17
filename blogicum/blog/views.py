@@ -136,13 +136,11 @@ class CategoryPostsView(ListView):
 
     def get_queryset(self) -> QuerySet[Any]:
         """Override get_queryset method to filter post by category"""
-        # check publish availability
+        queryset = Post.objects.all()
         self.category = get_object_or_404(
             Category, slug=self.kwargs["category_slug"], is_published=True
         )
-        # if category available return posts of its category
-        queryset = Post.objects.filter(category=self.category)
-        return queryset
+        return filter_queryset(queryset, category=self.category)
 
     def get_context_data(self, **kwargs) -> dict[str, Any]:
         """Add custom filter to a paginator"""
