@@ -10,8 +10,8 @@ User = get_user_model()
 
 class BaseModel(models.Model):
     """Base model describes fields for every class such as:
-    * is_published - Опубликовано (bool)
-    * created_at - Добавлено (datetime)
+    * is_published - Опубликовано
+    * created_at - Добавлено
     """
 
     is_published = models.BooleanField(default=True,
@@ -110,7 +110,7 @@ class Location(BaseModel):
 
 
 class Comment(models.Model):
-    """class representing 'Comment' fields in database"""
+    """Class representing 'Comment' fields in database"""
 
     post = models.ForeignKey(Post, related_name='comments',
                              on_delete=models.CASCADE)
