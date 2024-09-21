@@ -28,8 +28,8 @@ urlpatterns = [
 
     path('category/<slug:category_slug>/', views.CategoryPostsView.as_view(),
          name='category_posts'),
+    path('profile/edit/', views.ProfileUpdateView.as_view(),
+         name='edit_profile'),
     path('profile/<str:username>/', views.ProfileView.as_view(),
          name='profile'),
-    path('profile/edit', views.ProfileUpdateView.as_view(),
-         name='edit_profile')
 ]

@@ -22,6 +22,8 @@ User = get_user_model()
 
 
 class BasePost:
+    """Base class for Post model"""
+
     model = Post
 
     def is_author(self, obj) -> bool:
@@ -46,7 +48,8 @@ class PostCreateView(LoginRequiredMixin, CreateView):
     template_name = "blog/create.html"
     form_class = PostForm
 
-    def form_valid(self, form):
+    def form_valid(self, form) -> HttpResponse:
+        """Redefine method to add author to the post"""
         self.object = form.save(commit=False)
         self.object.author = get_object_or_404(
             User, username=self.request.user.username
@@ -65,12 +68,12 @@ class PostUpdateView(BasePost, UpdateView):
     template_name = "blog/create.html"
     form_class = PostForm
 
-    def get(self, request, *args, **kwargs):
+    def get(self, request, *args, **kwargs) -> HttpResponse:
+        """Post can be updated only by its author"""
         object = self.get_object()
         if self.is_author(object):
             return super().get(request, *args, **kwargs)
         else:
-            # return redirect("blog:post_detail", pk=object.pk)
             raise Http404("Вам нельзя редактировать не свои публикации")
 
     def post(self, request: HttpRequest, *args: str, **kwargs) -> HttpResponse:
@@ -93,10 +96,10 @@ class PostDetailView(BasePost, DetailView):
         """Retrieve the post considering the current user"""
         post = self.get_object()
         now = timezone.now()
-        if not self.is_author(post) and (
-                not post.is_published or post.pub_date > now):
-            raise Http404("Пост не найден, или недоступен")
-        return post
+        if self.is_author(post) or (post.is_published and post.pub_date < now
+                                    and post.category.is_published):
+            return post
+        raise Http404("Пост не найден, или недоступен")
 
     def get_context_data(self, **kwargs) -> dict[str, Any]:
         """Add extra data to context"""
@@ -121,6 +124,12 @@ class PostDeleteView(BasePost, LoginRequiredMixin, DeleteView):
             return obj
         else:
             raise Http404("Вам нельзя удалять не свои публикации")
+
+    def get_context_data(self, **kwargs):
+        """Add the object to the context to access it in the template"""
+        context = super().get_context_data(**kwargs)
+        context['form'] = PostForm(instance=self.get_object())
+        return context
 
     def get_success_url(self) -> str:
         """Success url to the profile when profile updated"""
@@ -160,9 +169,11 @@ class ProfileView(ListView):
     template_name = "blog/profile.html"
     paginate_by = MAX_POSTS_COUNT
 
-    def get_queryset(self):
+    def get_queryset(self) -> QuerySet:
         """Get post by username kwarg"""
-        username = self.kwargs["username"]
+        username = self.kwargs.get("username", "")
+        if not username:
+            username = self.request.user.username
         self.user = get_object_or_404(User, username=username)
         valid_objects = self.request.user.username != self.user.username
         posts = filter_queryset(
@@ -182,13 +193,14 @@ class ProfileUpdateView(LoginRequiredMixin, UpdateView):
     """Update profile view"""
 
     model = User
-    template_name = "registration/registration_form.html"
+    template_name = "blog/user.html"
     fields = ("username", "email", "first_name", "last_name")
 
     def get_object(self):
         """Edit current user"""
-        object = get_object_or_404(User, username=self.request.user.username)
-        return object
+        # username = self.request.user.username
+        # user = get_object_or_404(User, username=username)
+        return self.request.user
 
     def get_success_url(self) -> str:
         """Success url to the profile when profile updated"""
@@ -243,21 +255,20 @@ class CommentUpdateView(CommentBaseView, UpdateView):
     fields = ("text",)
     template_name = "blog/comment.html"
 
-    def get(self, request: HttpRequest, *args: str, **kwargs: Any
-            ) -> HttpResponse:
-        """Update post if current user is the author"""
-        if self.get_object().author.username == self.request.user.username:
-            return super().get(request, *args, **kwargs)
+    def get_object(self) -> Model:
+        """Method allow delete comment only if current user is the author"""
+        queryset = self.get_queryset()
+        obj = get_object_or_404(queryset, pk=self.kwargs["comment_id"])
+        if obj.author.username == self.request.user.username:
+            return obj
         else:
-            # return redirect("blog:post_detail", self.kwargs["pk"])
             raise Http404("Вам нельзя редактировать не свои комментарии")
 
 
-class CommentDeleteView(DeleteView):
+class CommentDeleteView(CommentBaseView, DeleteView):
     """Delete comment"""
 
     template_name = "blog/comment.html"
-    model = Comment
 
     def get_object(self) -> Model:
         """Method allow delete comment only if current user is the author"""

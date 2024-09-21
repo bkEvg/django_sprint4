@@ -16,14 +16,14 @@ class AboutView(TemplateView):
 
 def handle_404page(request, exception):
     template_name = "pages/404.html"
-    return render(request, template_name)
+    return render(request, template_name, status=404)
 
 
 def handle_403page(request, exception):
     template_name = "pages/403csrf.html"
-    return render(request, template_name)
+    return render(request, template_name, status=403)
 
 
 def handle_500page(request):
     template_name = "pages/500.html"
-    return render(request, template_name)
+    return render(request, template_name, status=500)

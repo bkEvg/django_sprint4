@@ -32,10 +32,6 @@ urlpatterns = [
     path('auth/registration/', Registration.as_view(), name='registration')
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
-if settings.DEBUG:
-    urlpatterns += (
-        path("__debug__/", include("debug_toolbar.urls")),)
-
 
 handler403 = "pages.views.handle_403page"
 handler404 = "pages.views.handle_404page"
