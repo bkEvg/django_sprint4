@@ -10,8 +10,8 @@ User = get_user_model()
 
 class BaseModel(models.Model):
     """Base model describes fields for every class such as:
-    * is_published - Опубликовано
-    * created_at - Добавлено
+    * is_published - Опубликовано (bool)
+    * created_at - Добавлено (datetime)
     """
 
     is_published = models.BooleanField(default=True,
@@ -61,11 +61,12 @@ class Post(BaseModel):
         """String representation"""
         return self.title
 
-    def get_absolute_url(self):
+    def get_absolute_url(self) -> str:
         """Get absolute path to the element"""
         return reverse('blog:post_detail', kwargs={'pk': self.pk})
 
-    def comment_count(self):
+    def comment_count(self) -> int:
+        """Return count of comment for the post"""
         return self.comments.count()
 
 
@@ -109,6 +110,8 @@ class Location(BaseModel):
 
 
 class Comment(models.Model):
+    """class representing 'Comment' fields in database"""
+
     post = models.ForeignKey(Post, related_name='comments',
                              on_delete=models.CASCADE)
     author = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -123,4 +126,5 @@ class Comment(models.Model):
         ordering = ('created_at',)
 
     def __str__(self) -> str:
+        """String representation"""
         return f"комментарий от {self.author.username} на {self.post.title}"

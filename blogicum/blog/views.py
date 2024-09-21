@@ -77,6 +77,7 @@ class PostUpdateView(BasePost, UpdateView):
             raise Http404("Вам нельзя редактировать не свои публикации")
 
     def post(self, request: HttpRequest, *args: str, **kwargs) -> HttpResponse:
+        """Redirect user if it tries to update not its post"""
         object = self.get_object()
         if self.is_author(object):
             return super().post(request, *args, **kwargs)
@@ -92,7 +93,7 @@ class PostDetailView(BasePost, DetailView):
 
     template_name = "blog/detail.html"
 
-    def get_post(self):
+    def get_post(self) -> Post:
         """Retrieve the post considering the current user"""
         post = self.get_object()
         now = timezone.now()
@@ -125,7 +126,7 @@ class PostDeleteView(BasePost, LoginRequiredMixin, DeleteView):
         else:
             raise Http404("Вам нельзя удалять не свои публикации")
 
-    def get_context_data(self, **kwargs):
+    def get_context_data(self, **kwargs) -> dict[str, Any]:
         """Add the object to the context to access it in the template"""
         context = super().get_context_data(**kwargs)
         context['form'] = PostForm(instance=self.get_object())
@@ -143,7 +144,7 @@ class CategoryPostsView(ListView):
     model = Post
     paginate_by = MAX_POSTS_COUNT
 
-    def get_queryset(self) -> QuerySet[Any]:
+    def get_queryset(self) -> QuerySet:
         """Override get_queryset method to filter post by category"""
         queryset = Post.objects.all()
         self.category = get_object_or_404(
@@ -196,10 +197,8 @@ class ProfileUpdateView(LoginRequiredMixin, UpdateView):
     template_name = "blog/user.html"
     fields = ("username", "email", "first_name", "last_name")
 
-    def get_object(self):
+    def get_object(self) -> Model:
         """Edit current user"""
-        # username = self.request.user.username
-        # user = get_object_or_404(User, username=username)
         return self.request.user
 
     def get_success_url(self) -> str:
@@ -233,7 +232,7 @@ class CommentCreateView(LoginRequiredMixin, SuccessURLMixin, CreateView):
     form_class = CommentsForm
     template_name = "blog/detail.html"
 
-    def form_valid(self, form):
+    def form_valid(self, form) -> HttpResponse:
         """When comment form has perform post request
         we add extra data to it as:
             author - current user
@@ -250,7 +249,7 @@ class CommentCreateView(LoginRequiredMixin, SuccessURLMixin, CreateView):
 
 
 class CommentUpdateView(CommentBaseView, UpdateView):
-    """Update comment"""
+    """Update comment only by its owner"""
 
     fields = ("text",)
     template_name = "blog/comment.html"
