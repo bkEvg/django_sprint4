@@ -49,7 +49,7 @@ class PostUpdateView(PostViewMixin, UpdateView):
     template_name = "blog/create.html"
     form_class = PostForm
 
-    def form_valid(self, form):
+    def form_valid(self, form) -> HttpResponse:
         """
         Redifine form valid method
         validate form only if current user is the author
