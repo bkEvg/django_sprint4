@@ -1,9 +1,10 @@
+from typing import Any
+
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models.base import Model
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
 from django.http import Http404
-from typing import Any
 
 from blog.models import Post, Comment
 
@@ -53,6 +54,6 @@ class CommentViewMixin(LoginRequiredMixin, SuccessURLMixin):
         """
         queryset = self.get_queryset()
         obj = get_object_or_404(queryset, pk=self.kwargs["comment_pk"])
-        if obj.author.username == self.request.user.username:
+        if obj.author == self.request.user:
             return obj
         raise Http404("Вам нельзя редактировать не свои комментарии")
